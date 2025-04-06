@@ -1,27 +1,26 @@
 from sqlalchemy import create_engine, MetaData, Table, select, text
 from sqlalchemy.orm import sessionmaker
 from classes import Classes
+from engineCreator import get_sqlalchemy_engine
 
 
 #ved at lave det til en funktion kan denne forbindelses oprettes uden at have gentagene kode
-#(
-# noter til BI - når der er defineret funktioner som det her, så køre det kun hvis man kalder det direkte
-# ellers så køres alt koden fra top til bund
-# findes også i en anden fil, så man kan bruge "from engineCreator import getEngine" og bruge på tværs a filer
-#)
-def getEngine():
-    connectionString = (
-    "mssql+pyodbc://localhost\\SQLEXPRESS/master?"
-    "driver=ODBC+Driver+17+for+SQL+Server&"
-    "trusted_connection=yes&"
-    "encrypt=no"
-    )
-    return create_engine(connectionString)
+# hvis det er flere interaktioner i en fil bør der gøres brug af den samme engine
+# (advanced) engines er også threadsafe, den indeholer en threadpool hvor der håndteres trådene 
+# def getEngine():
+#     connectionString = (
+#     "mssql+pyodbc://localhost\\SQLEXPRESS/master?"
+#     "driver=ODBC+Driver+17+for+SQL+Server&"
+#     "trusted_connection=yes&"
+#     "encrypt=no"
+#     )
+#     return create_engine(connectionString)
 
+engine = get_sqlalchemy_engine()
+Session = sessionmaker(engine)
 #den her gør brug af session, det gør at den har transactions som man kender fra sql, hvor den låner forbindelsen fra getengine.
 #altså ikke et krav men brugbar at have med
 def hentFraSqlMedKlasser():
-    Session = sessionmaker(getEngine())
     with Session.begin() as session:
         statement = select(Classes)
         classes_obj = session.scalars(statement).all()
@@ -32,7 +31,6 @@ def hentFraSqlMedKlasser():
 def hentFraSqlUdenOpsatKlasse():
     #laver et objekt med db skemaet så den kan læse det
     metadata = MetaData()
-    engine = getEngine()
     classes_table = Table("Classes", metadata, autoload_with=engine)
     # opret en forbindelse der lever i dette scope (altså lukkes bagefter)
     with engine.connect() as conn:
@@ -43,8 +41,11 @@ def hentFraSqlUdenOpsatKlasse():
          print(row)
 
 def hentMedSql():
-    with getEngine().connect() as conn:
-        result = conn.execute(text("SELECT BasicClassId, Refnr FROM dbo.Classes"))
+    with engine.connect() as conn:
+        # hvis man henter fra dbo schema så behøver man ikke aer specificere
+        # result = conn.execute(text("SELECT BasicClassId, Refnr FROM Classes"))
+        # hvis andet schema så skal der specificeres, men der er ingen intellisense at hente
+        result = conn.execute(text("SELECT Id, Username FROM Undervisning.Players"))
         rows = result.fetchall()
         for row in rows:
          print(row)
