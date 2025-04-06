@@ -11,8 +11,3 @@ class Classes(Base):
     Refnr = Column(DECIMAL)  
     Oprettet = Column(DateTime)
 
-    def __init__(self, BasicClassId, TestField, Refnr, Oprettet):
-        self.BasicClassId = BasicClassId
-        self.TestField = TestField
-        self.Refr = Refnr
-        self.Oprettet = Oprettet
